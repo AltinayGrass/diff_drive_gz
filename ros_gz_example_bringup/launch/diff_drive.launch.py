@@ -35,6 +35,9 @@ def generate_launch_description():
     pkg_project_description = get_package_share_directory('ros_gz_example_description')
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
+    use_slam_toolbox = LaunchConfiguration('slam_toolbox', default='False')
+    use_sim_time = LaunchConfiguration('use_sim_time', default='True')
+
     # Load the SDF file from "description" package
     sdf_file  =  os.path.join(pkg_project_description, 'models', 'diff_drive', 'model.sdf')
     with open(sdf_file, 'r') as infp:
@@ -63,6 +66,35 @@ def generate_launch_description():
         ]
     )
 
+    control_params_file = PathJoinSubstitution(
+        [pkg_project_bringup, 'config', 'control.yaml'])
+
+    diffdrive_controller_node = Node(
+        package='controller_manager',
+        executable='spawner',
+        parameters=[control_params_file],
+        arguments=['diffdrive_controller', '-c', 'controller_manager'],
+        output='screen',
+    )
+
+    joint_state_broadcaster_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['joint_state_broadcaster', '-c', 'controller_manager'],
+        output='screen',
+    )
+
+    # Navigation
+    toolbox_params = os.path.join(pkg_project_bringup, 'config', 'slam_toolbox_params.yaml')
+    slam_toolbox = Node(
+        parameters=[toolbox_params,
+                    {'use_sim_time':  use_sim_time}],
+        package='slam_toolbox',
+        executable='async_slam_toolbox_node',
+        name='slam_toolbox',
+        output='screen',
+        condition=IfCondition(use_slam_toolbox)
+    )
     # Visualize in RViz
     rviz = Node(
        package='rviz2',
@@ -88,5 +120,8 @@ def generate_launch_description():
                               description='Open RViz.'),
         bridge,
         robot_state_publisher,
+        # diffdrive_controller_node,
+        # joint_state_broadcaster_spawner,
+        slam_toolbox,
         rviz
     ])
