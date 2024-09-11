@@ -53,11 +53,17 @@ def generate_launch_description():
     
     robot_desc_urdf = os.path.join(pkg_project_description, 'urdf' , 'motor_drive_gz.urdf')
 
+    world = PathJoinSubstitution([
+            pkg_project_gazebo,
+            'worlds',
+            'warehouse.sdf'
+        ])
+    
     # Setup to launch the simulator and Gazebo world
     gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
-        launch_arguments={'gz_args': ['-r -v4 empty.sdf' ]}.items(),
+        launch_arguments={'gz_args': [ world , ' -r -v4']}.items(),
     )
 
     # Takes the description and joint angles as inputs and publishes the 3D poses of the robot links
