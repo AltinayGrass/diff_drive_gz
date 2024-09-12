@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import xacro
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -23,6 +24,7 @@ from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
+
 
 from launch_ros.actions import Node
 
@@ -50,8 +52,14 @@ def generate_launch_description():
     sdf_file  =  os.path.join(pkg_project_description, 'models', 'diff_drive', 'model.sdf')
     with open(sdf_file, 'r') as infp:
         robot_desc = infp.read()
+
+    # Parse robot description from xacro
+    robot_description_file = os.path.join(pkg_project_description, 'urdf' , 'motor_drive_gz.urdf')
     
-    robot_desc_urdf = os.path.join(pkg_project_description, 'urdf' , 'motor_drive_gz.urdf')
+    robot_description_config = xacro.process_file(
+        robot_description_file
+    )
+    robot_description = {'robot_description': robot_description_config.toxml()}
 
     world = PathJoinSubstitution([
             pkg_project_gazebo,
@@ -73,8 +81,8 @@ def generate_launch_description():
         name='robot_state_publisher',
         output='both',
         parameters=[
+            robot_description,
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
-            {'robot_description':  Command(['xacro ', robot_desc_urdf])},
         ],
     )
 
@@ -187,7 +195,7 @@ def generate_launch_description():
         name='tf_namespaced_base_link_publisher',
         arguments=['0', '0', '0',
                    '0', '0', '0',
-                   'base_footprint', '/base_footprint'],
+                   'warehouse/diff_drive/base_footprint', 'map/odom/base_footprint'],
         remappings=[
             ('/tf', 'tf'),
             ('/tf_static', 'tf_static')
@@ -270,7 +278,7 @@ def generate_launch_description():
         joint_state_broadcaster_spawner,
         diffdrive_controller_callback,
         cmd_vel_node,
-        odom_base_node,
+        # odom_base_node,
         laser_scan_node,
         # footprint_publisher,
         # tf_namespaced_odom_publisher,
