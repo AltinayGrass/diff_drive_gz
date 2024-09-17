@@ -15,7 +15,7 @@
 import os
 import xacro
 
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_share_directory, get_packages_with_prefixes
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
@@ -47,6 +47,7 @@ def generate_launch_description():
 
     use_slam_toolbox = LaunchConfiguration('slam_toolbox', default='False')
     use_sim_time = LaunchConfiguration('use_sim_time', default='False')
+    use_nav = LaunchConfiguration('nav', default='False')
 
     # Load the SDF file from "description" package
     sdf_file  =  os.path.join(pkg_project_description, 'models', 'diff_drive', 'model.sdf')
@@ -125,6 +126,31 @@ def generate_launch_description():
         output='screen',
         condition=IfCondition(use_slam_toolbox)
     )
+
+    localization_params = PathJoinSubstitution([pkg_project_bringup, 'config', 'localization.yaml'])
+    nav2_params_file = 'nav2_params.yaml'
+    nav2_params = os.path.join(pkg_project_bringup, 'config', nav2_params_file)
+    nav2_map = os.path.join(pkg_project_bringup, 'config', 'my_map.yaml')
+    if 'nav2_bringup' in get_packages_with_prefixes():
+        localization_action=IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(os.path.join(
+                get_package_share_directory('nav2_bringup'), 'launch', 'localization_launch.py')),
+            launch_arguments=[
+                ('map', nav2_map),
+                ('params_file', localization_params),
+                ('use_sim_time', use_sim_time),
+            ],
+            condition=IfCondition(use_nav))
+        nav2_action=IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(os.path.join(
+                get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')),
+            launch_arguments=[
+                ('map', nav2_map),
+                ('params_file', nav2_params),
+                ('use_sim_time', use_sim_time),
+            ],
+            condition=IfCondition(use_nav))
+        
     # Visualize in RViz
     rviz = Node(
        package='rviz2',
@@ -270,6 +296,10 @@ def generate_launch_description():
         gz_sim,
         DeclareLaunchArgument('rviz', default_value='false',
                               description='Open RViz.'),
+        DeclareLaunchArgument(
+        'map',
+        default_value=PathJoinSubstitution([pkg_project_bringup, 'config', 'my_map.yaml']),
+        description='Full path to map yaml file to load'),
         declare_x_position_cmd,
         declare_y_position_cmd,
         spawn_entity,
@@ -284,6 +314,8 @@ def generate_launch_description():
         # tf_namespaced_odom_publisher,
         # tf_namespaced_base_link_publisher,
         slam_toolbox,
+        localization_action,
+        nav2_action,
         rviz,
         clock_bridge,
     ])
