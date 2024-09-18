@@ -530,9 +530,9 @@
     <child link="hokuyo_laser"/>
   </joint>
 
-    <gazebo reference="base_link">
+    <!-- <gazebo reference="base_link">
       <material name="DarkGrey"/>
-    </gazebo>
+    </gazebo> -->
 
     <gazebo reference="hokuyo_laser">
       <sensor name="hokuyo" type="gpu_lidar">
@@ -569,6 +569,7 @@
         <parameters>$(find ros_gz_example_bringup)/config/controllers.yaml</parameters>
         <ros>
           <remapping>~/odom:=odom</remapping>
+          <remapping>~/odometry:=diff_drive/odometry</remapping>
           <remapping>/tf:=tf</remapping>
           <remapping>/tf_static:=tf_static</remapping>
           <remapping>/diagnostics:=diagnostics</remapping>

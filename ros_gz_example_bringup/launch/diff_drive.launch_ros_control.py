@@ -19,14 +19,14 @@ from ament_index_python.packages import get_package_share_directory, get_package
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, GroupAction
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 
 
-from launch_ros.actions import Node
+from launch_ros.actions import Node, SetRemap
 
 
 def generate_launch_description():
@@ -85,6 +85,9 @@ def generate_launch_description():
             robot_description,
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
         ],
+        remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static'),]
     )
 
     control_params_file = PathJoinSubstitution(
@@ -141,21 +144,27 @@ def generate_launch_description():
                 ('use_sim_time', use_sim_time),
             ],
             condition=IfCondition(use_nav))
-        nav2_action=IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(
-                get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')),
-            launch_arguments=[
-                ('map', nav2_map),
-                ('params_file', nav2_params),
-                ('use_sim_time', use_sim_time),
-            ],
-            condition=IfCondition(use_nav))
-        
+        nav2_action= GroupAction([
+            SetRemap('/global_costmap/diff_drive/scan',
+                 '/diff_drive/scan'),
+            SetRemap('/local_costmap/diff_drive/scan',
+                 '/diff_drive/scan'),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(os.path.join(
+                    get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')),
+                    launch_arguments=[
+                    ('map', nav2_map),
+                    ('params_file', nav2_params),
+                    ('use_sim_time', use_sim_time),
+                    ],
+                    condition=IfCondition(use_nav))
+        ])
     # Visualize in RViz
     rviz = Node(
        package='rviz2',
        executable='rviz2',
        arguments=['-d', os.path.join(pkg_project_bringup, 'config', 'diff_drive.rviz')],
+       parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
        condition=IfCondition(LaunchConfiguration('rviz'))
     )
 
