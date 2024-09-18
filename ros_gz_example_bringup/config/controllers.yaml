@@ -1,6 +1,6 @@
 controller_manager:
   ros__parameters:
-    update_rate: 1000  # Hz
+    update_rate: 50  # Hz
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
@@ -18,20 +18,21 @@ diffdrive_controller:
     wheel_separation_multiplier: 1.089
     left_wheel_radius_multiplier: 1.0 #0.0275
     right_wheel_radius_multiplier: 1.0 #-0.0275
-
+    
+    publish_rate: 50.0  
     odom_frame_id: odom
     base_frame_id: base_footprint
     #pose_covariance_diagonal: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     #twist_covariance_diagonal: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-    position_feedback: true
+    position_feedback: false
     open_loop: false
-    enable_odom_tf: true
+    enable_odom_tf: false
     use_stamped_vel: false
-
+    tf_frame_prefix_enable: false
     cmd_vel_timeout: 0.5 # seconds
     publish_limited_velocity: true
-    velocity_rolling_window_size: 10
+    #velocity_rolling_window_size: 10
 
     linear.x.has_velocity_limits: true
     linear.x.has_acceleration_limits: true

@@ -117,6 +117,31 @@ def generate_launch_description():
             on_exit=[diffdrive_controller_node],
         )
     )
+    # Paths
+    dir_platform_config = PathJoinSubstitution([
+        pkg_project_bringup, 'config'])
+
+    # Configs
+    config_localization = [
+        dir_platform_config,
+        '/ekf.yaml'
+    ]
+
+    # Localization
+    node_ekf = Node(
+            package='robot_localization',
+            executable='ekf_node',
+            name='ekf_node',
+            output='screen',
+            parameters=[config_localization],
+            remappings=[
+              ('odometry/filtered', 'odom/filtered'),
+              ('/diagnostics', 'diagnostics'),
+              ('/tf', 'tf'),
+              ('/tf_static', 'tf_static'),
+            ]
+        )
+
 
     # Navigation
     toolbox_params = os.path.join(pkg_project_bringup, 'config', 'slam_toolbox_params.yaml')
@@ -135,7 +160,7 @@ def generate_launch_description():
     nav2_params = os.path.join(pkg_project_bringup, 'config', nav2_params_file)
     nav2_map = os.path.join(pkg_project_bringup, 'config', 'my_map.yaml')
     if 'nav2_bringup' in get_packages_with_prefixes():
-        localization_action=IncludeLaunchDescription(
+        localization_action = IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(
                 get_package_share_directory('nav2_bringup'), 'launch', 'localization_launch.py')),
             launch_arguments=[
@@ -144,11 +169,11 @@ def generate_launch_description():
                 ('use_sim_time', use_sim_time),
             ],
             condition=IfCondition(use_nav))
-        nav2_action= GroupAction([
-            SetRemap('/global_costmap/diff_drive/scan',
-                 '/diff_drive/scan'),
-            SetRemap('/local_costmap/diff_drive/scan',
-                 '/diff_drive/scan'),
+        nav2_action = GroupAction([
+            SetRemap('/global_costmap/scan',
+                 '/scan'),
+            SetRemap('/local_costmap/scan',
+                 '/scan'),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(os.path.join(
                     get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')),
@@ -197,7 +222,7 @@ def generate_launch_description():
         package='ros_gz_sim',
         executable='create',
         arguments=[
-            '-name', 'diff_drive',
+            '-name', 'robot',
             '-topic', 'robot_description',
             '-x', x_pose,
             '-y', y_pose,
@@ -253,17 +278,16 @@ def generate_launch_description():
             parameters=[{'use_sim_time': use_sim_time}],
             arguments=[
                  '/scan' + GZ_TO_ROS_LASERSCAN            ],
-            remappings=[
-                ('/scan' , 'diff_drive/scan')
-            ])
+            #remappings=[('/scan' , 'robot/scan')]
+            )
 
-    cmd_vel_bridge_arg = 'diff_drive' + '/cmd_vel' + GZ_TO_ROS_TWIST
-    cmd_vel_bridge_remap = ('diff_drive' + '/cmd_vel', 'cmd_vel')
+    cmd_vel_bridge_arg = 'pmb2' + '/cmd_vel' + GZ_TO_ROS_TWIST
+    cmd_vel_bridge_remap = ('pmb2' + '/cmd_vel', 'cmd_vel')
 
-    cmd_vel_robot_bridge_arg = '/model/' + 'diff_drive' + '/cmd_vel' + ROS_TO_GZ_TWIST
+    cmd_vel_robot_bridge_arg = '/model/' + 'robot' + '/cmd_vel' + ROS_TO_GZ_TWIST
     cmd_vel_robot_bridge_remap = (
-        '/model/' + 'diff_drive' + '/cmd_vel',
-        'diff_drive/cmd_vel_unstamped'
+        '/model/' + 'robot' + '/cmd_vel',
+        'diffdrive_controller/cmd_vel_unstamped'
         )
     cmd_vel_node = Node(
             package='ros_gz_bridge',
@@ -286,10 +310,10 @@ def generate_launch_description():
             name='odom_base_tf_bridge',
             parameters=[{'use_sim_time': use_sim_time}],
             arguments=[
-                '/model/' + 'diff_drive' + '/pose' + GZ_TO_ROS_TF
+                '/model/' + 'robot' + '/tf' + GZ_TO_ROS_TF
             ],
             remappings=[
-                ('/model/' + 'diff_drive' + '/pose', 'tf')
+                ('/model/' + 'robot' + '/tf', 'tf')
             ])
     
     # Clock bridge
@@ -317,7 +341,8 @@ def generate_launch_description():
         joint_state_broadcaster_spawner,
         diffdrive_controller_callback,
         cmd_vel_node,
-        # odom_base_node,
+        node_ekf,
+        odom_base_node,
         laser_scan_node,
         # footprint_publisher,
         # tf_namespaced_odom_publisher,
