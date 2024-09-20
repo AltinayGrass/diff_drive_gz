@@ -184,13 +184,41 @@ def generate_launch_description():
                     ],
                     condition=IfCondition(use_nav))
         ])
+
+    
+    # Configs
+    config_twist_mux = [
+        dir_platform_config,
+        '/twist_mux.yaml'
+    ]
+
+    node_twist_mux = Node(
+        package='twist_mux',
+        executable='twist_mux',
+        output='screen',
+        remappings={
+            ('cmd_vel_out', 'diffdrive_controller/cmd_vel_unstamped'),
+            ('/diagnostics', 'diagnostics'),
+            ('/tf', 'tf'),
+            ('/tf_static', 'tf_static'),
+        },
+        parameters=[
+            config_twist_mux,
+            {'use_sim_time': use_sim_time}]
+    )
+
     # Visualize in RViz
     rviz = Node(
        package='rviz2',
        executable='rviz2',
        arguments=['-d', os.path.join(pkg_project_bringup, 'config', 'diff_drive.rviz')],
        parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-       condition=IfCondition(LaunchConfiguration('rviz'))
+       remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static')
+             ],
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('rviz'))
     )
 
     # Bridge ROS topics and Gazebo messages for establishing communication
@@ -280,10 +308,10 @@ def generate_launch_description():
                  '/scan' + GZ_TO_ROS_LASERSCAN            ],
             #remappings=[('/scan' , 'robot/scan')]
             )
-
+    #Teleop cmd from ignition
     cmd_vel_bridge_arg = 'pmb2' + '/cmd_vel' + GZ_TO_ROS_TWIST
     cmd_vel_bridge_remap = ('pmb2' + '/cmd_vel', 'cmd_vel')
-
+    #Teleop cmd from ros
     cmd_vel_robot_bridge_arg = '/model/' + 'robot' + '/cmd_vel' + ROS_TO_GZ_TWIST
     cmd_vel_robot_bridge_remap = (
         '/model/' + 'robot' + '/cmd_vel',
@@ -295,11 +323,11 @@ def generate_launch_description():
             name='cmd_vel_bridge',
             parameters=[{'use_sim_time': use_sim_time}],
             arguments=[
-                # cmd_vel_bridge_arg,
+                cmd_vel_bridge_arg,
                 cmd_vel_robot_bridge_arg
             ],
             remappings=[
-                # cmd_vel_bridge_remap,
+                cmd_vel_bridge_remap,
                 cmd_vel_robot_bridge_remap
             ])
     
@@ -310,10 +338,10 @@ def generate_launch_description():
             name='odom_base_tf_bridge',
             parameters=[{'use_sim_time': use_sim_time}],
             arguments=[
-                '/model/' + 'robot' + '/tf' + GZ_TO_ROS_TF
+                '/model/' + 'robot' + '/pose' + GZ_TO_ROS_TF
             ],
             remappings=[
-                ('/model/' + 'robot' + '/tf', 'tf')
+                ('/model/' + 'robot' + '/pose', 'tf')
             ])
     
     # Clock bridge
@@ -341,8 +369,9 @@ def generate_launch_description():
         joint_state_broadcaster_spawner,
         diffdrive_controller_callback,
         cmd_vel_node,
+        node_twist_mux,
         node_ekf,
-        odom_base_node,
+        # odom_base_node,
         laser_scan_node,
         # footprint_publisher,
         # tf_namespaced_odom_publisher,
