@@ -23,7 +23,7 @@ from launch.actions import IncludeLaunchDescription, GroupAction
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 
 
 from launch_ros.actions import Node, SetRemap
@@ -358,27 +358,27 @@ def generate_launch_description():
         DeclareLaunchArgument('rviz', default_value='false',
                               description='Open RViz.'),
         DeclareLaunchArgument(
-        'map',
-        default_value=PathJoinSubstitution([pkg_project_bringup, 'config', 'my_map.yaml']),
-        description='Full path to map yaml file to load'),
+                            'map',
+                            default_value=PathJoinSubstitution([pkg_project_bringup, 'config', 'my_map.yaml']),
+                            description='Full path to map yaml file to load'),
         declare_x_position_cmd,
         declare_y_position_cmd,
+        clock_bridge,
         spawn_entity,
+        laser_scan_node,
         # bridge,
         robot_state_publisher,
         joint_state_broadcaster_spawner,
         diffdrive_controller_callback,
-        cmd_vel_node,
-        node_twist_mux,
-        node_ekf,
         # odom_base_node,
-        laser_scan_node,
         # footprint_publisher,
         # tf_namespaced_odom_publisher,
         # tf_namespaced_base_link_publisher,
         slam_toolbox,
         localization_action,
-        nav2_action,
+        # nav2_action,
+        cmd_vel_node,
+        node_twist_mux,
+        node_ekf,
         rviz,
-        clock_bridge,
     ])
