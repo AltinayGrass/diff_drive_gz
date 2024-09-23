@@ -45,6 +45,7 @@ def generate_launch_description():
     pkg_project_description = get_package_share_directory('ros_gz_example_description')
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
+    use_slam_cartographer = LaunchConfiguration('slam_cartographer', default=False)
     use_slam_toolbox = LaunchConfiguration('slam_toolbox', default='False')
     use_sim_time = LaunchConfiguration('use_sim_time', default='False')
     use_nav = LaunchConfiguration('nav', default='False')
@@ -154,6 +155,29 @@ def generate_launch_description():
         output='screen',
         condition=IfCondition(use_slam_toolbox)
     )
+
+    cartographer_config_dir = os.path.join(pkg_project_bringup, 'config')
+    cartographer_config_basename = 'cartographer.lua'
+    cartographer = Node(
+        package='cartographer_ros',
+        executable='cartographer_node',
+        name='cartographer_node',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+        arguments=['-configuration_directory', cartographer_config_dir,
+                   '-configuration_basename', cartographer_config_basename],
+        condition=IfCondition(use_slam_cartographer)
+        )
+
+    grid_executable = 'cartographer_occupancy_grid_node'
+    cartographer_grid = Node(
+        package='cartographer_ros',
+        executable=grid_executable,
+        name='cartographer_occupancy_grid_node',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+        arguments=['-resolution', '0.05'],
+        condition= IfCondition(use_slam_cartographer))
 
     localization_params = PathJoinSubstitution([pkg_project_bringup, 'config', 'localization.yaml'])
     nav2_params_file = 'nav2_params.yaml'
@@ -375,6 +399,8 @@ def generate_launch_description():
         # tf_namespaced_odom_publisher,
         # tf_namespaced_base_link_publisher,
         slam_toolbox,
+        cartographer,
+        cartographer_grid,
         localization_action,
         # nav2_action,
         cmd_vel_node,
