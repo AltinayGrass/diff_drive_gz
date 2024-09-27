@@ -20,6 +20,7 @@ from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, GroupAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch.conditions import IfCondition
 
 
 from launch_ros.actions import SetRemap
@@ -31,7 +32,8 @@ def generate_launch_description():
     # Setup project paths
     pkg_project_bringup = get_package_share_directory('ros_gz_example_bringup')
        
-    use_sim_time = LaunchConfiguration('use_sim_time', default='False')
+    use_sim_time = LaunchConfiguration('use_sim_time', default='True')
+    use_collision_monitor = LaunchConfiguration('col', default='False')
     
     # Navigation
 
@@ -52,10 +54,23 @@ def generate_launch_description():
                     ('params_file', nav2_params),
                     ('use_sim_time', use_sim_time),
                     ]
-            ),
+            )
         ])
 
+    collision_params_file = 'collision_monitor.yaml'
+    collision_params = os.path.join(pkg_project_bringup, 'config', collision_params_file)
+    if 'nav2_collision_monitor' in get_packages_with_prefixes():
+        collision_action = IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(os.path.join(
+                    get_package_share_directory('nav2_collision_monitor'), 'launch', 'collision_monitor_node.launch.py')),
+                        launch_arguments=[
+                        ('params_file', collision_params),
+                        ('use_sim_time', use_sim_time),
+                        ],
+                        condition=IfCondition(use_collision_monitor)
+        )
     
     return LaunchDescription([
+        collision_action,
         nav2_action,
     ])
