@@ -48,9 +48,8 @@ def generate_launch_description():
                  '/scan'),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(os.path.join(
-                    get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')),
+                    get_package_share_directory('ros_gz_example_bringup'), 'launch', 'navigation_launch.py')),
                     launch_arguments=[
-                    ('map', nav2_map),
                     ('params_file', nav2_params),
                     ('use_sim_time', use_sim_time),
                     ]
